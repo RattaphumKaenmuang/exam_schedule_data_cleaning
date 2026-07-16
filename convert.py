@@ -24,25 +24,6 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
     using the page indices (pages_idx) to separate the data into each page.
     """
 
-    new_df = pd.DataFrame(columns=[
-        "order",
-        "subj",
-        "sec",
-        "st_year",
-        "st_max",
-        "ex_dur",
-        "teacher_str",
-        "building",
-        "room",
-        "note",
-        "ex_date",
-        "code4",
-        "ex_time",
-        "st_num",
-        "ex_dt",
-        "teachers"
-    ])
-
     ex_date = process_exam_date_str(get_exam_date_str(df))
 
     # [DONE] order — ลำดับวิชา จากคอลัมน์ "ลำดับ" ถ้าวิชาหนึ่งสอบพร้อมกันหลายห้อง แถวที่ 2 เป็นต้นไปของวิชานั้นในไฟล์ต้นฉบับจะว่าง ต้องเติมค่าจากแถวแรกของวิชานั้นให้ครบ (forward fill)
@@ -62,6 +43,7 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
     # [DONE] ex_dt — วันเวลาสอบแบบย่อ รวมไว้ใช้ group/sort คือ - ex_date + เว้นวรรค + ex_time เช่น 2026-03-19 13
     # [DONE] teachers — รายชื่อผู้สอน ตัดคำนำหน้าตำแหน่งวิชาการออก (เช่น ผศ., ดร., รศ., ผศ. ดร., รศ. ดร., ศ., อ. ฯลฯ) และคั่นหลายคนด้วย ; แทน , ประมวลผลจาก teacher_str
 
+    rows = []
     for i in range(len(pages_idx)):
         start_idx = pages_idx[i] + 1
 
@@ -78,46 +60,24 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
             row = df.iloc[j]
             if row.isnull().all(): break
 
-            # print(f"Processing row {j}: {row.tolist()}")
-            # print(f"Current order: {order}, Current subj: {subj}")
-            # print(f"Row values: order={row[0]}, pd.notna(row[0]): {pd.notna(row[0])}")
-            # print(f"Row values: subj={row[1]}, pd.notna(row[1]): {pd.notna(row[1])}")
-
-            order = str(row[0]) if pd.notna(row[0]) and row[0] != ' ' else order
-            subj = str(row[1]) if pd.notna(row[1]) and row[1] != ' ' else subj
-            sec = str(row[2]) 
-            st_year = str(row[3])
-            st_max = str(row[4])
-            ex_dur = str(row[5])
-            teacher_str = str(row[6])
-            building = str(row[7])
-            room = str(row[8])
-            note = str(row[9])
+            order =         str(row[0]) if not is_cell_empty(row[0]) else order
+            subj =          str(row[1]) if not is_cell_empty(row[1]) else subj
+            sec =           str(row[2]) if not is_cell_empty(row[2]) else None
+            st_year =       str(row[3]) if not is_cell_empty(row[3]) else None
+            st_max =        str(row[4]) if not is_cell_empty(row[4]) else None
+            ex_dur =        str(row[5]) if not is_cell_empty(row[5]) else None
+            teacher_str =   str(row[6]) if not is_cell_empty(row[6]) else None
+            building =      str(row[7]) if not is_cell_empty(row[7]) else None
+            room =          str(row[8]) if not is_cell_empty(row[8]) else None
+            note =          str(row[9]) if not is_cell_empty(row[9]) else None
             # ex_date already processed above.
-            code4 = str(subj)[:4] if subj else None
-            ex_time = ex_dur[:2] if ex_dur else None
-            st_num = int(note.split('/')[0]) if pd.notna(note) and room != ' ' else 0
-            ex_dt = f"{ex_date} {ex_time}" if ex_date and ex_time else None
-            
-            teachers_list = [t.strip() for t in teacher_str.split(',')] if pd.notna(teacher_str) else []
-            # Steps backwards until the first dot is found.
-            for i in range(len(teachers_list)):
-                t = teachers_list[i]
+            code4 =         str(subj)[:4] if subj else None
+            ex_time =       ex_dur[:2] if ex_dur else None
+            st_num =        int(note.split('/')[0]) if pd.notna(note) and room != ' ' else 0
+            ex_dt =         f"{ex_date} {ex_time}" if ex_date and ex_time else None
+            teachers =      process_teachers_str(teacher_str)
 
-                # Very funny, อาจารย์SUSHISH BARAL
-                # Check for English alphabet in case someone named อาจารย์ actually shows up (please don't)
-                foreign_name = t.split('อาจารย์')[-1]
-                if 'อาจารย์' in t and (foreign_name[0].isalpha() or foreign_name[0] == ' '):
-                    teachers_list[i] = t.split('อาจารย์')[-1].strip()
-                    continue
-
-                for j in range(len(t) - 1, -1, -1):
-                    if t[j] == '.':
-                        teachers_list[i] = t[j + 1:].strip()
-                        break
-            teachers = '; '.join(teachers_list)
-
-            new_df = pd.concat([new_df, pd.DataFrame([{
+            rows.append({
                 "order": order,
                 "subj": subj,
                 "sec": sec,
@@ -134,9 +94,9 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
                 "st_num": st_num,
                 "ex_dt": ex_dt,
                 "teachers": teachers
-            }])], ignore_index=True)
+            })
 
-    return new_df
+    return pd.DataFrame(rows)
 
 def get_exam_date_str(df: pd.DataFrame) -> str:
     """
@@ -181,8 +141,6 @@ def process_exam_date_str(exam_date_str: str) -> str:
 
     exam_date_parts = exam_date_str.split()                 # ['วันสอบ', 'จ.', '16', 'มี.ค.', '69', 'เวลา', '13:00-16:30', 'น.']
 
-    # ===== Processing ex_date =====
-
     day = exam_date_parts[2]                                # '16'
     month_str = exam_date_parts[3]                          # 'มี.ค.'
     buddhist_year_str = exam_date_parts[4]                  # '69'
@@ -193,6 +151,40 @@ def process_exam_date_str(exam_date_str: str) -> str:
     ex_date = f"{gregorian_year}-{month}-{day}"
 
     return ex_date
+
+def process_teachers_str(teacher_str: str | None) -> str:
+    """
+    Process the teacher string to remove academic titles and format it.
+    Returns the processed teacher string.
+    """
+
+    teachers_list = [t.strip() for t in teacher_str.split(',')] if pd.notna(teacher_str) else []
+    # Steps backwards until the first dot is found.
+    for i in range(len(teachers_list)):
+        t = teachers_list[i]
+
+        # Very funny, อาจารย์SUSHISH BARAL
+        # Check for English alphabet in case someone named อาจารย์ actually shows up (please don't)
+        foreign_name = t.split('อาจารย์')[-1]
+        if 'อาจารย์' in t and (foreign_name[0].isalpha() or foreign_name[0] == ' '):
+            teachers_list[i] = t.split('อาจารย์')[-1].strip()
+            continue
+
+        for j in range(len(t) - 1, -1, -1):
+            if t[j] == '.':
+                teachers_list[i] = t[j + 1:].strip()
+                break
+    teachers = '; '.join(teachers_list)
+
+    return teachers
+
+def is_cell_empty(cell) -> bool:
+    """
+    Check if a cell is empty (NaN or whitespace).
+    Returns True if the cell is empty, False otherwise.
+    """
+
+    return pd.isna(cell) or str(cell).strip() == '' or str(cell) == ' '
 
 df = convert_exam_report("16 เช้า.xls")
 
