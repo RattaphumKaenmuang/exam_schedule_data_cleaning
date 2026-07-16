@@ -2,9 +2,8 @@
 
 ## Setup
 1. Create a Python VENV (Optional).
-2. Run `pip install -r requirements.txt` (ipykernel is optional, but useful for debugging the dataframe)
+2. Run `pip install -r requirements.txt` (ipykernel is optional, but useful for debugging the dataframe via VSCode's Interactive Windows)
 3. Run the code via `python convert.py <excel_file_path>`. For file examples, see the xls files in the project.
-4. Inside VSCode, the project could also be run as a cell similar to within notebook environments via VSCode's Interactive Window. (ipykernel needed)
 
 # Task
 การบ้าน: แปลงไฟล์รายงานตารางสอบ (Excel) ให้เป็นข้อมูลตาราง (DataFrame/CSV)

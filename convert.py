@@ -1,4 +1,5 @@
 # %%
+import argparse
 import pandas as pd
 
 def convert_exam_report(file_path: str) -> pd.DataFrame:
@@ -164,7 +165,7 @@ def process_teachers_str(teacher_str: str | None) -> str:
         t = teachers_list[i]
 
         # Very funny, อาจารย์SUSHISH BARAL
-        # Check for English alphabet in case someone named อาจารย์ actually shows up (please don't)
+        # In case someone named อาจารย์ or has a one-char-long name actually exists
         foreign_name = t.split('อาจารย์')[-1]
         if 'อาจารย์' in t and (foreign_name[0].isalpha() or foreign_name[0] == ' '):
             teachers_list[i] = t.split('อาจารย์')[-1].strip()
@@ -174,7 +175,7 @@ def process_teachers_str(teacher_str: str | None) -> str:
             if t[j] == '.':
                 teachers_list[i] = t[j + 1:].strip()
                 break
-    teachers = '; '.join(teachers_list)
+    teachers = ';'.join(teachers_list)
 
     return teachers
 
@@ -186,6 +187,12 @@ def is_cell_empty(cell) -> bool:
 
     return pd.isna(cell) or str(cell).strip() == '' or str(cell) == ' '
 
-df = convert_exam_report("16 เช้า.xls")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_path", help="Path to the exam report .xls file")
+    args = parser.parse_args()
+
+    df = convert_exam_report(args.file_path)
+    df.to_csv("output.csv", index=False, encoding="utf-8-sig")
 
 # %%
