@@ -45,6 +45,10 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
     # [DONE] teachers — รายชื่อผู้สอน ตัดคำนำหน้าตำแหน่งวิชาการออก (เช่น ผศ., ดร., รศ., ผศ. ดร., รศ. ดร., ศ., อ. ฯลฯ) และคั่นหลายคนด้วย ; แทน , ประมวลผลจาก teacher_str
 
     rows = []
+
+    # Needs to be out here in case the subject spans multiple pages
+    order = None
+    subj = None
     for i in range(len(pages_idx)):
         start_idx = pages_idx[i] + 1
 
@@ -54,9 +58,6 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
         else:
             end_idx = len(df)
         
-        order = None
-        subj = None
-
         for j in range(start_idx, end_idx):
             row = df.iloc[j]
             if row.isnull().all(): break
@@ -179,7 +180,7 @@ def process_teachers_str(teacher_str: str | None) -> str:
 
     return teachers
 
-def is_cell_empty(cell) -> bool:
+def is_cell_empty(cell: str) -> bool:
     """
     Check if a cell is empty (NaN or whitespace).
     Returns True if the cell is empty, False otherwise.
