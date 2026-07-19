@@ -75,7 +75,7 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
             # ex_date already processed above.
             code4 =         str(subj)[:4] if subj else None
             ex_time =       ex_dur[:2] if ex_dur else None
-            st_num =        int(note.split('/')[0]) if pd.notna(note) and room != ' ' else 0
+            st_num =        int(note.split('/')[0]) if note and note != ' ' else 0
             ex_dt =         f"{ex_date} {ex_time}" if ex_date and ex_time else None
             teachers =      process_teachers_str(teacher_str)
 
@@ -159,6 +159,9 @@ def process_teachers_str(teacher_str: str | None) -> str:
     Process the teacher string to remove academic titles and format it.
     Returns the processed teacher string.
     """
+    
+    if teacher_str is None:
+        return ""
 
     teachers_list = [t.strip() for t in teacher_str.split(',')] if pd.notna(teacher_str) else []
     # Steps backwards until the first dot is found.
