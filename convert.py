@@ -50,28 +50,24 @@ def build_df_from_pages(df: pd.DataFrame, pages_idx: list) -> pd.DataFrame:
     order = None
     subj = None
     for i in range(len(pages_idx)):
-        start_idx = pages_idx[i] + 1
-
         # Ends when the entire row is NaN, when the next page starts, or when the data ends.
-        if i + 1 < len(pages_idx):
-            end_idx = pages_idx[i + 1]
-        else:
-            end_idx = len(df)
-        
-        for j in range(start_idx, end_idx):
+        start_idx = pages_idx[i] + 1    # Skip the header row of each page
+        next_page_idx = pages_idx[i + 1] if i + 1 < len(pages_idx) else len(df)
+
+        for j in range(start_idx, next_page_idx):
             row = df.iloc[j]
             if row.isnull().all(): break
 
-            order =         str(row[0]) if not is_cell_empty(row[0]) else order
-            subj =          str(row[1]) if not is_cell_empty(row[1]) else subj
-            sec =           str(row[2]) if not is_cell_empty(row[2]) else None
-            st_year =       str(row[3]) if not is_cell_empty(row[3]) else None
-            st_max =        str(row[4]) if not is_cell_empty(row[4]) else None
-            ex_dur =        str(row[5]) if not is_cell_empty(row[5]) else None
-            teacher_str =   str(row[6]) if not is_cell_empty(row[6]) else None
-            building =      str(row[7]) if not is_cell_empty(row[7]) else None
-            room =          str(row[8]) if not is_cell_empty(row[8]) else None
-            note =          str(row[9]) if not is_cell_empty(row[9]) else None
+            order =         to_stripped_string(row[0]) if not is_cell_empty(row[0]) else order
+            subj =          to_stripped_string(row[1]) if not is_cell_empty(row[1]) else subj
+            sec =           to_stripped_string(row[2]) if not is_cell_empty(row[2]) else None
+            st_year =       to_stripped_string(row[3]) if not is_cell_empty(row[3]) else None
+            st_max =        to_stripped_string(row[4]) if not is_cell_empty(row[4]) else None
+            ex_dur =        to_stripped_string(row[5]) if not is_cell_empty(row[5]) else None
+            teacher_str =   to_stripped_string(row[6]) if not is_cell_empty(row[6]) else None
+            building =      to_stripped_string(row[7]) if not is_cell_empty(row[7]) else None
+            room =          to_stripped_string(row[8]) if not is_cell_empty(row[8]) else None
+            note =          to_stripped_string(row[9]) if not is_cell_empty(row[9]) else None
             # ex_date already processed above.
             code4 =         str(subj)[:4] if subj else None
             ex_time =       ex_dur[:2] if ex_dur else None
@@ -170,8 +166,8 @@ def process_teachers_str(teacher_str: str | None) -> str:
 
         # Very funny, อาจารย์SUSHISH BARAL
         # In case someone named อาจารย์ or has a one-char-long name actually exists
-        foreign_name = t.split('อาจารย์')[-1]
-        if 'อาจารย์' in t and (foreign_name[0].isalpha() or foreign_name[0] == ' '):
+        name = t.split('อาจารย์')[-1]
+        if 'อาจารย์' in t and (name[0].isalpha() or name[0] == ' '):
             teachers_list[i] = t.split('อาจารย์')[-1].strip()
             continue
 
@@ -190,6 +186,14 @@ def is_cell_empty(cell: str) -> bool:
     """
 
     return pd.isna(cell) or str(cell).strip() == '' or str(cell) == ' '
+
+def to_stripped_string(series: pd.Series) -> str:
+    """
+    Convert a pandas Series to a stripped string.
+    Returns the stripped string.
+    """
+
+    return str(series).strip()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
